@@ -53,16 +53,16 @@ def parse_logs():
                 # backend = data['backend'] + "/" + data['server_name']
                 backend = data['backend']
                 client_ip = data['client_ip']
-                total_waiting_time = int(data['Tw'])
-                total_connect_time = int(data['Tc'])
-                total_response_time = int(data['Tr'])
-                total_time = int(data['Tt'])
+                total_waiting_time = data['Tw']
+                total_connect_time = data['Tc']
+                total_response_time = data['Tr']
+                total_time = data['Tt']
 
                 # Increment the request count with backend label
                 request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend,
-                                     client_ip=client_ip, waiting_time=total_waiting_time,
-                                     connect_time=total_connect_time, response_time=total_response_time,
-                                     time=total_time).inc()
+                                     client_ip=client_ip, total_waiting_time=total_waiting_time,
+                                     total_connect_time=total_connect_time, total_response_time=total_response_time,
+                                     total_time=total_time).inc()
 
 
 def run_server():
