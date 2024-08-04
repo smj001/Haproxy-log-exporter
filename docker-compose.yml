@@ -1,0 +1,7 @@
+services:
+  haproxy-log-exporter:
+    build: .
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/log/haproxy:/var/log/haproxy
