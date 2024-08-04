@@ -1,7 +1,7 @@
 import re
 import time
 import prometheus_client
-from prometheus_client import Counter, Summary
+from prometheus_client import Counter, Summary, Gauge
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Define Prometheus metrics
@@ -11,17 +11,18 @@ request_count = Counter('haproxy_requests_total', 'Total number of requests',
 request_client_ip = Counter('haproxy_requests_client_ip', 'Total number of requests',
                             ['client_ip', 'backend', 'status_code', 'endpoint'])
 
-request_waiting_time = Summary('haproxy_request_waiting_time_seconds', 'Request waiting time in ms',
+request_waiting_time = Gauge('haproxy_request_waiting_time_seconds', 'Request waiting time in ms',
                                ['status_code', 'backend', 'endpoint', 'method'])
 
-request_connect_time = Summary('haproxy_request_connect_time_seconds', 'Request connect time in ms',
+request_connect_time = Gauge('haproxy_request_connect_time_seconds', 'Request connect time in ms',
                                ['status_code', 'backend', 'endpoint', 'method'])
 
-request_response_time = Summary('haproxy_request_response_time_seconds', 'Request response time in ms',
+request_response_time = Gauge('haproxy_request_response_time_seconds', 'Request response time in ms',
                                 ['status_code', 'backend', 'endpoint', 'method'])
 
-request_total_time = Summary('haproxy_request_total_time_seconds', 'Request total time in ms',
+request_total_time = Gauge('haproxy_request_total_time_seconds', 'Request total time in ms',
                              ['status_code', 'backend', 'endpoint', 'method'])
+
 
 # Regex pattern for parsing HAProxy log entries
 log_pattern = re.compile(
@@ -78,13 +79,13 @@ def parse_logs():
                     request_client_ip.labels(client_ip=client_ip, status_code=status_code, backend=backend,
                                              endpoint=path).inc()
                     request_waiting_time.labels(status_code=status_code, backend=backend, endpoint=path,
-                                                method=method).observe(total_waiting_time)
+                                                method=method).set(total_waiting_time)
                     request_connect_time.labels(status_code=status_code, backend=backend, endpoint=path,
-                                                method=method).observe(total_connect_time)
+                                                method=method).set(total_connect_time)
                     request_response_time.labels(status_code=status_code, backend=backend, endpoint=path,
-                                                 method=method).observe(total_response_time)
+                                                 method=method).set(total_response_time)
                     request_total_time.labels(status_code=status_code, backend=backend, endpoint=path,
-                                              method=method).observe(total_time)
+                                              method=method).set(total_time)
                 except ValueError:
                     # Handle case where conversion to float fails
                     print(f"Error parsing time values in line: {line}")
