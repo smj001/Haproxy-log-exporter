@@ -11,7 +11,7 @@ request_duration = Summary('haproxy_request_duration_seconds', 'Request duration
 
 # Regex pattern for parsing HAProxy log entries
 log_pattern = re.compile(
-    r'(?P<client_ip>\S+):(?P<client_port>\d+) \[(?P<timestamp>[^\]]+)\] (?P<frontend>\S+) (?P<backend>[^/]+)/(?P<server_name>\S+) \d+/\d+/\d+/\d+/\+\d+ (?P<status_code>\d+) \+\d+ - - -+ --NI \d+/\d+/\d+/\d+/\d+ \d+/\d+ "(?P<method>\S+) (?P<path>\S+)"'
+    r'(?P<client_ip>\S+):(?P<client_port>\d+) \[(?P<timestamp>[^\]]+)\] (?P<frontend>\S+) (?P<backend>[^\/]+)\/(?P<server_name>\S+) \d+\/\d+\/\d+\/\d+\/\+\d+ (?P<status_code>\d+) \+\d+ - - --(?P<termination_state>\w{2}) \d+\/\d+\/\d+\/\d+\/\d+ \d+\/\d+ "(?P<method>\S+) (?P<path>[^ ]+) HTTP\/\S+"'
 )
 
 log_file_path = "/var/log/haproxy.log"
