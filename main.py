@@ -6,8 +6,22 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Define Prometheus metrics
 request_count = Counter('haproxy_requests_total', 'Total number of requests',
-                        ['method', 'endpoint', 'status_code', 'backend', 'client_ip', 'total_waiting_time',
-                         'total_connect_time', 'total_response_time', 'total_time'])
+                        ['method', 'endpoint', 'status_code', 'backend'])
+
+request_client_ip = Counter('haproxy_requests_client_ip', 'Total number of requests',
+                        ['client_ip', 'bacekend', 'status_code', 'endpoint'])
+
+request_waiting_time = Summary('haproxy_request_waiting_time_seconds', 'Request waiting time in ms',
+                               ['status_code', 'backend', 'endpoint'])
+
+request_connect_time = Summary('haproxy_request_connect_time_seconds', 'Request connect time in ms',
+                               ['status_code', 'backend', 'endpoint'])
+
+request_response_time = Summary('haproxy_request_response_time_seconds', 'Request response time in ms',
+                                ['status_code', 'backend', 'endpoint'])
+
+request_total_time = Summary('haproxy_request_total_time_seconds', 'Request total time in ms',
+                             ['status_code', 'backend', 'endpoint'])
 
 # Regex pattern for parsing HAProxy log entries
 log_pattern = re.compile(
@@ -50,7 +64,6 @@ def parse_logs():
                 method = data['method']
                 path = data['path']
                 status_code = data['status_code']
-                # backend = data['backend'] + "/" + data['server_name']
                 backend = data['backend']
                 client_ip = data['client_ip']
                 total_waiting_time = data['Tw']
@@ -59,10 +72,12 @@ def parse_logs():
                 total_time = data['Tt']
 
                 # Increment the request count with backend label
-                request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend,
-                                     client_ip=client_ip, total_waiting_time=total_waiting_time,
-                                     total_connect_time=total_connect_time, total_response_time=total_response_time,
-                                     total_time=total_time).inc()
+                request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend).inc()
+                request_client_ip.labels(client_ip=client_ip, status_code=status_code, backend=backend).inc()
+                request_waiting_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_waiting_time))
+                request_total_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_time))
+                request_connect_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_connect_time))
+                request_response_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_response_time))
 
 
 def run_server():
