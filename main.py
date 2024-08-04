@@ -9,7 +9,7 @@ request_count = Counter('haproxy_requests_total', 'Total number of requests',
                         ['method', 'endpoint', 'status_code', 'backend'])
 
 request_client_ip = Counter('haproxy_requests_client_ip', 'Total number of requests',
-                        ['client_ip', 'backend', 'status_code', 'endpoint'])
+                            ['client_ip', 'backend', 'status_code', 'endpoint'])
 
 request_waiting_time = Summary('haproxy_request_waiting_time_seconds', 'Request waiting time in ms',
                                ['status_code', 'backend', 'endpoint', 'method'])
@@ -66,24 +66,36 @@ def parse_logs():
                 status_code = data['status_code']
                 backend = data['backend']
                 client_ip = data['client_ip']
-                total_waiting_time = data['Tw']
-                total_connect_time = data['Tc']
-                total_response_time = data['Tr']
-                total_time = data['Tt']
 
-                # Increment the request count with backend label
-                request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend).inc()
-                request_client_ip.labels(client_ip=client_ip, status_code=status_code, backend=backend, method=method).inc()
-                request_waiting_time.labels(status_code=status_code, backend=backend, endpoint=path, method=method).observe(total_waiting_time, amount=int)
-                request_total_time.labels(status_code=status_code, backend=backend, endpoint=path, method=method).observe(total_time, amount=int)
-                request_connect_time.labels(status_code=status_code, backend=backend, endpoint=path, method=method).observe(total_connect_time, amount=int)
-                request_response_time.labels(status_code=status_code, backend=backend, endpoint=path, method=method).observe(total_response_time, amount=int)
+                try:
+                    total_waiting_time = float(data['Tw']) / 1000
+                    total_connect_time = float(data['Tc']) / 1000
+                    total_response_time = float(data['Tr']) / 1000
+                    total_time = float(data['Tt']) / 1000
+
+                    # Increment the request count with backend label
+                    request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend).inc()
+                    request_client_ip.labels(client_ip=client_ip, status_code=status_code, backend=backend,
+                                             endpoint=path).inc()
+                    request_waiting_time.labels(status_code=status_code, backend=backend, endpoint=path,
+                                                method=method).observe(total_waiting_time)
+                    request_connect_time.labels(status_code=status_code, backend=backend, endpoint=path,
+                                                method=method).observe(total_connect_time)
+                    request_response_time.labels(status_code=status_code, backend=backend, endpoint=path,
+                                                 method=method).observe(total_response_time)
+                    request_total_time.labels(status_code=status_code, backend=backend, endpoint=path,
+                                              method=method).observe(total_time)
+                except ValueError:
+                    # Handle case where conversion to float fails
+                    print(f"Error parsing time values in line: {line}")
+            else:
+                print(f"No match found for line: {line}")
 
 
 def run_server():
     server_address = ('', 9000)
     httpd = HTTPServer(server_address, MetricsHandler)
-    print("Starting server at http://localhost:0000")
+    print("Starting server at http://localhost:9000")
     httpd.serve_forever()
 
 
