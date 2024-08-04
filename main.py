@@ -3,6 +3,7 @@ import time
 import prometheus_client
 from prometheus_client import Counter, Summary, Gauge
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from threading import Thread, Lock
 
 # Define Prometheus metrics
 request_count = Counter('haproxy_requests_total', 'Total number of requests',
@@ -12,17 +13,16 @@ request_client_ip = Counter('haproxy_requests_client_ip', 'Total number of reque
                             ['client_ip', 'backend', 'status_code', 'endpoint'])
 
 request_waiting_time = Gauge('haproxy_request_waiting_time_seconds', 'Request waiting time in ms',
-                               ['status_code', 'backend', 'endpoint', 'method'])
-
-request_connect_time = Gauge('haproxy_request_connect_time_seconds', 'Request connect time in ms',
-                               ['status_code', 'backend', 'endpoint', 'method'])
-
-request_response_time = Gauge('haproxy_request_response_time_seconds', 'Request response time in ms',
-                                ['status_code', 'backend', 'endpoint', 'method'])
-
-request_total_time = Gauge('haproxy_request_total_time_seconds', 'Request total time in ms',
                              ['status_code', 'backend', 'endpoint', 'method'])
 
+request_connect_time = Gauge('haproxy_request_connect_time_seconds', 'Request connect time in ms',
+                             ['status_code', 'backend', 'endpoint', 'method'])
+
+request_response_time = Gauge('haproxy_request_response_time_seconds', 'Request response time in ms',
+                              ['status_code', 'backend', 'endpoint', 'method'])
+
+request_total_time = Gauge('haproxy_request_total_time_seconds', 'Request total time in ms',
+                           ['status_code', 'backend', 'endpoint', 'method'])
 
 # Regex pattern for parsing HAProxy log entries
 log_pattern = re.compile(
@@ -30,6 +30,23 @@ log_pattern = re.compile(
 )
 
 log_file_path = "/var/log/haproxy.log"
+
+# Global set to track active labels
+active_labels = set()
+labels_lock = Lock()
+
+
+# Function to periodically clean up inactive metrics
+def clean_up_metrics():
+    while True:
+        time.sleep(60)  # Adjust the interval as needed
+        with labels_lock:
+            for metric in prometheus_client.REGISTRY.collect():
+                for sample in metric.samples:
+                    labels = tuple(sample.labels.items())
+                    if labels not in active_labels:
+                        # Remove metric if labels are not active
+                        metric.remove()
 
 
 class MetricsHandler(BaseHTTPRequestHandler):
@@ -56,6 +73,7 @@ def follow(file):
 
 
 def parse_logs():
+    global active_labels
     with open(log_file_path, 'r') as log_file:
         log_lines = follow(log_file)
         for line in log_lines:
@@ -86,6 +104,16 @@ def parse_logs():
                                                  method=method).set(total_response_time)
                     request_total_time.labels(status_code=status_code, backend=backend, endpoint=path,
                                               method=method).set(total_time)
+
+                    # Update active labels
+                    with labels_lock:
+                        active_labels.add(tuple({
+                                                    'method': method,
+                                                    'endpoint': path,
+                                                    'status_code': status_code,
+                                                    'backend': backend
+                                                }.items()))
+
                 except ValueError:
                     # Handle case where conversion to float fails
                     print(f"Error parsing time values in line: {line}")
@@ -102,10 +130,13 @@ def run_server():
 
 if __name__ == "__main__":
     # Start parsing logs in a separate thread or process
-    import threading
-
-    log_thread = threading.Thread(target=parse_logs)
+    log_thread = Thread(target=parse_logs)
     log_thread.start()
 
     # Start the HTTP server to expose metrics
-    run_server()
+    server_thread = Thread(target=run_server)
+    server_thread.start()
+
+    # Start the cleanup thread
+    cleanup_thread = Thread(target=clean_up_metrics)
+    cleanup_thread.start()
