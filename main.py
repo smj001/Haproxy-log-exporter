@@ -74,10 +74,10 @@ def parse_logs():
                 # Increment the request count with backend label
                 request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend).inc()
                 request_client_ip.labels(client_ip=client_ip, status_code=status_code, backend=backend).inc()
-                request_waiting_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_waiting_time))
-                request_total_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_time))
-                request_connect_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_connect_time))
-                request_response_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(int(total_response_time))
+                request_waiting_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(total_waiting_time, amount=int)
+                request_total_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(total_time, amount=int)
+                request_connect_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(total_connect_time, amount=int)
+                request_response_time.labels(status_code=status_code, backend=backend, endpoint=path).observe(total_response_time, amount=int)
 
 
 def run_server():
