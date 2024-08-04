@@ -50,7 +50,8 @@ def parse_logs():
                 method = data['method']
                 path = data['path']
                 status_code = data['status_code']
-                backend = data['backend'] + "/" + data['server_name']
+                # backend = data['backend'] + "/" + data['server_name']
+                backend = data['backend']
                 client_ip = data['client_ip']
 
 
