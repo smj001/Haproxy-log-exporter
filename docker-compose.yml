@@ -4,4 +4,4 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - /var/log/haproxy:/var/log/haproxy
+      - /var/log/haproxy.log:/var/log/haproxy.log
