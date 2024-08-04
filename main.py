@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Define Prometheus metrics
 request_count = Counter('haproxy_requests_total', 'Total number of requests',
-                        ['method', 'endpoint', 'status_code', 'backend'])
+                        ['method', 'endpoint', 'status_code', 'backend' , 'client_ip'])
 request_duration = Summary('haproxy_request_duration_seconds', 'Request duration in seconds', ['backend'])
 
 # Regex pattern for parsing HAProxy log entries
@@ -51,9 +51,11 @@ def parse_logs():
                 path = data['path']
                 status_code = data['status_code']
                 backend = data['backend'] + "/" + data['server_name']
+                client_ip = data['client_ip']
+
 
                 # Increment the request count with backend label
-                request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend).inc()
+                request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend, client_ip=client_ip).inc()
 
                 # Mock request duration (use actual values if available)
                 request_duration.labels(backend=backend).observe(0.1)
