@@ -69,10 +69,10 @@ def parse_logs():
                 client_ip = data['client_ip']
 
                 try:
-                    total_waiting_time = float(data['Tw']) / 1000
-                    total_connect_time = float(data['Tc']) / 1000
-                    total_response_time = float(data['Tr']) / 1000
-                    total_time = float(data['Tt']) / 1000
+                    total_waiting_time = float(data['Tw'])
+                    total_connect_time = float(data['Tc'])
+                    total_response_time = float(data['Tr'])
+                    total_time = float(data['Tt'])
 
                     # Increment the request count with backend label
                     request_count.labels(method=method, endpoint=path, status_code=status_code, backend=backend).inc()
